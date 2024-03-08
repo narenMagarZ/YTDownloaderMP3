@@ -7,7 +7,11 @@ from .select_all import *
 class Filter(QHBoxLayout):
     def __init__(self):
         super().__init__()
+        self.selectAll = True
+        self.setObjectName("filter")
         self.setAlignment(QtCore.Qt.AlignLeft)
-        self.addWidget(SelectAll())
-        self.addWidget(DownloadBtn())
-
+        selectAll = SelectAll(self)
+        downloadBtn = DownloadBtn()
+        self.widgets = [selectAll,downloadBtn]
+        self.addWidget(selectAll)
+        self.addWidget(downloadBtn)
