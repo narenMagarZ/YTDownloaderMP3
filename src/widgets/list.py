@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, QUrl, QSize
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager, QNetworkReply
-from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QCheckBox
+from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QCheckBox, QProgressBar
 from .card import *
 from PyQt5.QtGui import QPixmap
 
@@ -54,12 +54,12 @@ class VideoInfoCard(QWidget):
         self.filter = filter
         self.cList = cList
         self.networkManager = QNetworkAccessManager()
-        card = QVBoxLayout()
+
+        card = QHBoxLayout()
         self.setLayout(card)
         card.setAlignment(Qt.AlignLeft)
         card.setContentsMargins(0,5,0,0)
         self.videoCards = videoCards
-        div1 = QHBoxLayout()
         checkbox = QCheckBox()
         checkbox.setObjectName(f"ch_check{index}")
         checkbox.setChecked(True)
@@ -67,16 +67,26 @@ class VideoInfoCard(QWidget):
         # id,yt keys are already set
         videoCards[index]["checkState"] = True
         videoCards[index]["checkbox"]=checkbox
+
+
         videoTitle = QLabel(title)
         videoThumbnail = QLabel()
         fetchImage(imageUrl,self.networkManager,videoThumbnail)
 
-        div1.addWidget(checkbox)
-        div1.addWidget(videoThumbnail)
-        div1.addWidget(videoTitle)
-        div2 = QHBoxLayout()
+        card.addWidget(checkbox)
+        card.addWidget(videoThumbnail)
+        div2 = QVBoxLayout()
+        div2.setAlignment(Qt.AlignLeft)
+        div2.addWidget(videoTitle)
+        # download progress and complete
+        progressBar = QProgressBar(self)
+        progressBar.setFixedWidth(300)
+        progressBar.setFixedHeight(14)
+        progressBar.setMinimum(0)
+        progressBar.setMaximum(100)
+        div2.addWidget(progressBar)
         
-        card.addLayout(div1)
+        videoCards[index]["progress_bar"]=progressBar
         card.addLayout(div2)
     
     def __isAllBoxChecked(self,box):
