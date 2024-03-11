@@ -3,22 +3,37 @@ from pytube import YouTube
 from .list import *
 from .helper.generate_folderpath import generateFolderPath
 import threading
+import os
 
-
+class Helper():
+    def __init__(self,url,index,p):
+        self.url = url
+        self.index = index
+        self.p = p
+    def downloadProgress(self,stream,chunk,bytesRemaining):
+        totalSize = stream.filesize
+        bytesDownloaded = totalSize - bytesRemaining
+        percentageCompleted = (bytesDownloaded / totalSize ) * 100
+        approximatePercentage = round(percentageCompleted)
+        progressBar = self.p.videoCards[self.index]["progress_bar"]
+        progressBar.setValue(approximatePercentage)
+        progressBar.update()
+    def downloadComplete(self,x,y):
+        progressBar = self.p.videoCards[self.index]["progress_bar"]
+        progressBar.setValue(100)
+        progressBar.update()
+        pass
 class SearchBtn():
     inputBox = None
     mainLayout = None
     filter = None
     yts = []
     videoCards = []
+    catalog = None
     def __init__(self,inputbox,mainLayout:QVBoxLayout):
         self.inputBox = inputbox
         self.mainLayout = mainLayout
-    def __downloadProgress(self,stream,chunk,bytesRemaining):
-        totalSize = stream.filesize
-        bytesDownloaded = totalSize - bytesRemaining
-        percentageCompleted = (bytesDownloaded / totalSize ) * 100
-        print(f"download progress: {round(percentageCompleted,2)}%")
+
     def getVideoInfo(self,url):
         try:
             yt = YouTube(url)
@@ -30,6 +45,9 @@ class SearchBtn():
 
 # https://www.youtube.com/watch?v=NoltgGRat2Y, https://www.youtube.com/watch?v=u_zeA_UFRnA
     def handleSearch(self):
+        # remove the list items
+        if self.catalog:
+            self.mainLayout.removeWidget(self.catalog)
         self.videoCards = [] # reset value to empty list
         value = self.inputBox.text().strip()
         urls = value.split(",")
@@ -41,15 +59,16 @@ class SearchBtn():
                 if thumbnail and title:
                     self.videoCards.append({"id":i,"url":url})
                     videoInfo.append((thumbnail,title))
-        videoCatalog = CustomList(self.filter,videoInfo,self.videoCards)
-        self.mainLayout.addWidget(videoCatalog)
+        self.catalog = CustomList(self.filter,videoInfo,self.videoCards)
+        self.mainLayout.addWidget(self.catalog)
                 
     def createSearchBtn(self,inputBox,filter):
         self.filter = filter
         downloadBtn = self.filter.widgets[1]
         def handleDownload():
-            print("video cards")
-            print(self.videoCards)
+            # todo :
+            # if downloaded files are already existed no need to download
+
             # before starting download check the list of selected file to be downloaded 
             # only selected file are allowed to be download
             # if self.filter.selectAll == True then no need to check for each file to be downloaded
@@ -60,8 +79,9 @@ class SearchBtn():
                 isChecked = card["checkState"]
                 print(url,isChecked)
                 if url and isChecked:
-                    yt = YouTube(url)
-                    createThread(yt)
+                    helper = Helper(url,i,self)
+                    yt = YouTube(helper.url,on_progress_callback=helper.downloadProgress,on_complete_callback=helper.downloadComplete)
+                    createThread(yt,self.videoCards[i])
         if downloadBtn:
             downloadBtn.clicked.connect(handleDownload)
         self.inputBox = inputBox
@@ -72,13 +92,18 @@ class SearchBtn():
         return btn
 
 
-def createThread(yt):
-    thread = threading.Thread(target=download,args=[yt])
+def createThread(yt,videoCard):
+    thread = threading.Thread(target=download,args=[yt,videoCard])
     thread.start()
     
 
-def download(yt:YouTube):
-    stream = yt.streams.filter(progressive=True,resolution="720p").first()
+def download(yt:YouTube,videCard):
     folderPath = generateFolderPath()
-    downloadPath = stream.download(folderPath)
-    print("download path",downloadPath)
+    stream = yt.streams.filter(progressive=True,resolution="720p").first()
+    path = stream.download(folderPath)
+    videCard["path"]=path
+
+
+
+
+# https://www.youtube.com/watch?v=sDp_ulTyDTY, https://www.youtube.com/watch?v=vnHTrxV7TMc, https://www.youtube.com/watch?v=OSYFhv3q6xo, https://www.youtube.com/watch?v=WmLXSosljUk
